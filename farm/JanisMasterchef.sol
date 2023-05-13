@@ -211,7 +211,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
     }
 
     // Return reward multiplier over the given _from to _to unix time.
-    function getMultiplier(uint _from, uint _to) public pure returns (uint) {
+    function getMultiplier(uint _from, uint _to) internal pure returns (uint) {
         return _to - _from;
     }
 
@@ -348,7 +348,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
         poolInfo[_pid].allocPointYieldToken = _allocPointYieldToken;
     }
 
-    function setDepositFeeOnly(uint _pid,  uint _depositFeeBPOrNFTETHFee, bool _withMassUpdate) public onlyOwner {
+    function setDepositFeeOnly(uint _pid,  uint _depositFeeBPOrNFTETHFee, bool _withMassUpdate) external onlyOwner {
         require(_depositFeeBPOrNFTETHFee <= 1000, "too high fee"); // <= 10%
 
         if (_withMassUpdate) {
@@ -441,7 +441,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
     /* ========== NFT External Functions ========== */
 
     // Depositing of NFTs
-    function depositNFT(address _nft, uint _tokenId, uint _slot, uint _pid) public nonReentrant {
+    function depositNFT(address _nft, uint _tokenId, uint _slot, uint _pid) external nonReentrant {
         require(_slot != 0 && _slot <= 5, "slot out of range 1-5!");
         require(isWhitelistedBoosterNFT[_nft], "only approved NFTs");
         require(ERC721(_nft).balanceOf(msg.sender) > 0, "user does not have specified NFT");
@@ -485,7 +485,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
     }
 
     // Withdrawing of NFTs
-    function withdrawNFT(uint _slot, uint _pid) public nonReentrant {
+    function withdrawNFT(uint _slot, uint _pid) external nonReentrant {
         address _nft;
         uint _tokenId;
         
@@ -599,7 +599,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
 
 
     // Deposit LP tokens to MasterChef for J & WETH allocation.
-    function deposit(uint _pid, uint _amountOrId, bool isNFTHarvest, address _referrer) public payable nonReentrant {
+    function deposit(uint _pid, uint _amountOrId, bool isNFTHarvest, address _referrer) external payable nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
@@ -713,7 +713,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.
-    function emergencyWithdraw(uint _pid) public nonReentrant {
+    function emergencyWithdraw(uint _pid) external nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         require(!pool.isExtinctionPool, "can't withdraw from extinction pools!");
 
@@ -754,7 +754,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
         emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
-    function viewStakerUserNFTs(address _series, address userAddress) public view returns (uint[] memory){
+    function viewStakerUserNFTs(address _series, address userAddress) external view returns (uint[] memory){
         EnumerableSet.UintSet storage nftStakedCollection = userNftIdsMapArray[userAddress][_series];
 
         uint[] memory nftStakedArray = new uint[](nftStakedCollection.length());
@@ -789,14 +789,14 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
 
     /* ========== Set Variable Functions ========== */
 
-    function updateJanisEmissionRate(uint _JanisPerSecond) public onlyOwner {
+    function updateJanisEmissionRate(uint _JanisPerSecond) external onlyOwner {
         require(_JanisPerSecond < 1e22, "emissions too high!");
         massUpdatePools();
         JanisPerSecond = _JanisPerSecond;
         emit UpdateJanisEmissionRate(msg.sender, _JanisPerSecond);
     }
 
-    function updateYieldTokenEmissionRate(uint _yieldTokenPerSecond) public onlyOwner {
+    function updateYieldTokenEmissionRate(uint _yieldTokenPerSecond) external onlyOwner {
         require(_yieldTokenPerSecond < 1e22, "emissions too high!");
         massUpdatePools();
         yieldTokenPerSecond = _yieldTokenPerSecond;
@@ -815,7 +815,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
         MAX_NFT_COUNT = new_MAX_NFT_COUNT;
     }
 
-    function setBoosterNFTWhitelist(address _nft, bool enabled, uint _nonAbilityBoost, bool isAbilityEnabled, uint abilityNFTBaseBoost, uint _nftAbilityBoostScalar) public onlyOwner {
+    function setBoosterNFTWhitelist(address _nft, bool enabled, uint _nonAbilityBoost, bool isAbilityEnabled, uint abilityNFTBaseBoost, uint _nftAbilityBoostScalar) external onlyOwner {
         require(_nft != address(0), "_nft!=0");
         require(enabled || (!enabled && !isAbilityEnabled), "Can't disable and also enable for ability boost!");
         require(_nonAbilityBoost <= 500, "Max non-abilitu boost is 5%!");
@@ -841,12 +841,12 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
         emit UpdateBoosterNFTWhitelist(msg.sender, _nft, enabled, nonAbilityBoost[_nft], isAbilityEnabled, nftAbilityBaseBoost[_nft], nftAbilityBoostScalar[_nft]);
     }
 
-    function setReserveFund(address newReserveFund) public onlyOwner {
+    function setReserveFund(address newReserveFund) external onlyOwner {
         reserveFund = newReserveFund;
         emit UpdateNewReserveFund(newReserveFund);
     }
 
-    function harvestAllRewards() public {
+    function harvestAllRewards() external {
         uint length = poolInfo.length;
         for (uint pid = 0; pid < length; ++pid) {
             if (userInfo[pid][msg.sender].amount > 0) {
