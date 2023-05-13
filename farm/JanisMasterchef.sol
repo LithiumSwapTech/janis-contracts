@@ -599,7 +599,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
 
 
     // Deposit LP tokens to MasterChef for J & WETH allocation.
-    function deposit(uint _pid, uint _amountOrId, bool isNFTHarvest, address _referrer) external payable nonReentrant {
+    function deposit(uint _pid, uint _amountOrId, bool isNFTHarvest, address _referrer) public payable nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
@@ -669,7 +669,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
     }
 
     // Withdraw LP tokens from MasterChef.
-    function withdraw(uint _pid, uint _amountOrId) public nonReentrant {
+    function withdraw(uint _pid, uint _amountOrId) external nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         require(!pool.isExtinctionPool, "can't withdraw from extinction pools!");
 
@@ -850,7 +850,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
         uint length = poolInfo.length;
         for (uint pid = 0; pid < length; ++pid) {
             if (userInfo[pid][msg.sender].amount > 0) {
-                withdraw(pid, 0);
+                deposit(pid, 0, true, address(0));
             }
         }
     }
