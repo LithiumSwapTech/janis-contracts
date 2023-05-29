@@ -298,7 +298,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
             isExtinctionPool: _isExtinctionPool
         }));
 
-        if (!_isExtinctionPool) {
+        if (!_isExtinctionPool && !_isNFT) {
             string memory receiptName = string.concat("J: ", _lpToken.name());
             string memory receiptSymbol = string.concat("J: ", _lpToken.symbol());
             poolInfo[poolInfo.length - 1].receiptToken = ERC20FactoryLib.createERC20(receiptName, receiptSymbol, _lpToken.decimals());
@@ -695,7 +695,7 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
         } else if (_amountOrId > 0) {
             MintableERC20(pool.receiptToken).burn(msg.sender, _amountOrId);
 
-             pool.lpToken.safeTransfer(msg.sender, _amountOrId);
+            pool.lpToken.safeTransfer(msg.sender, _amountOrId);
 
             withdrawQuantity = _amountOrId;
         }
@@ -732,8 +732,6 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
         else
             pool.totalLocked = 0;
 
-        MintableERC20(pool.receiptToken).burn(msg.sender, amount);
-
         if (pool.isNFT) {
             address series = address(pool.lpToken);
             EnumerableSet.UintSet storage nftStakedCollection = userNftIdsMapArray[msg.sender][series];
@@ -748,6 +746,8 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
             // empty user nft Ids array
             delete userNftIdsMapArray[msg.sender][series];
         } else {
+            MintableERC20(pool.receiptToken).burn(msg.sender, amount);
+
             pool.lpToken.safeTransfer(msg.sender, amount);
         }
 
