@@ -29,7 +29,7 @@ contract LaunchSale is
 
     // Janis will be 18 decimal
     uint public immutable JanisPresaleTotal;
-    uint public constant JanisPresaleAllocation = 1e6 * 1e18;
+    uint public constant JanisPresaleAllocation = 1e5 * 1e18;
     uint public immutable JanisLPAmount;
 
     // This ratio guarantees a 3x in price for presale participants
@@ -37,7 +37,7 @@ contract LaunchSale is
 
     // 20% of raise goes to fund development
     uint public constant orgShare = 20;
-    address public constant orgAddress = 0x9B031C4DbA4758C1Fb4251E6135d20B139C86196;
+    address public constant orgAddress = 0x885e4e4de81B2C88e84E7EC11146965Ae6d2e75E;//0x9B031C4DbA4758C1Fb4251E6135d20B139C86196;
 
     struct BuyerData {
         uint purchasedAmount;
@@ -143,18 +143,18 @@ contract LaunchSale is
     /// @notice Returns the amount of Janis + Ownership tokens that can be claimed by the user
     /// @dev It linearly releases tokens for 'releasePeriodSeconds' seconds from the moment the presale is over
     /// @return tokens The amount minted in Janis tokens, and the amount of Ownership tokens.
-    function pendingTokens() public view returns (uint, uint) {
-        return (pendingJanisTokens(), pendingOwnershipTokens());
+    function pendingTokens(address _user) public view returns (uint, uint) {
+        return (pendingJanisTokens(_user), pendingOwnershipTokens(_user));
     }
 
     /// @notice Returns the amount of Janis tokens that can be claimed by the user
     /// @dev It linearly releases tokens for 'releasePeriodSeconds' seconds from the moment the presale is over
     /// @return tokens The amount minted in Janis tokens
-    function pendingJanisTokens() public view returns (uint) {
-        if (block.timestamp <= endTime) return 0;
+    function pendingJanisTokens(address _user) public view returns (uint) {
+        if (block.timestamp <= endTime || totalValueSupplied == 0) return 0;
 
         uint totalUserTokens = (JanisPresaleAllocation *
-            buyerData[msg.sender].purchasedAmount) / totalValueSupplied;
+            buyerData[_user].purchasedAmount) / totalValueSupplied;
 
         uint releasedUserTokens = ((block.timestamp - finishedSecond) >=
             releasePeriodSeconds)
@@ -163,24 +163,24 @@ contract LaunchSale is
                 releasePeriodSeconds);
 
         return
-            (releasedUserTokens <= buyerData[msg.sender].claimedJanisTokens)
+            (releasedUserTokens <= buyerData[_user].claimedJanisTokens)
                 ? 0
-                : releasedUserTokens - buyerData[msg.sender].claimedJanisTokens;
+                : releasedUserTokens - buyerData[_user].claimedJanisTokens;
     }
 
     /// @notice Returns the amount of Ownership tokens that can be claimed by the user
     /// @dev It releases all tokens upon the claim process starting
     /// @return tokens The amount minted in Ownership tokens
-    function pendingOwnershipTokens() public view returns (uint) {
-        if (block.timestamp <= endTime) return 0;
+    function pendingOwnershipTokens(address _user) public view returns (uint) {
+        if (block.timestamp <= endTime || totalValueSupplied == 0) return 0;
 
         uint releasedUserTokens = (ownershipTokenTotal *
-            buyerData[msg.sender].purchasedAmount) / totalValueSupplied;
+            buyerData[_user].purchasedAmount) / totalValueSupplied;
 
         return
-            (releasedUserTokens <= buyerData[msg.sender].claimedOwnershipTokens)
+            (releasedUserTokens <= buyerData[_user].claimedOwnershipTokens)
                 ? 0
-                : releasedUserTokens - buyerData[msg.sender].claimedOwnershipTokens;
+                : releasedUserTokens - buyerData[_user].claimedOwnershipTokens;
     }
 
     /// @notice Used to claim all the tokens made available to the caller up to the current block
@@ -189,7 +189,7 @@ contract LaunchSale is
         require(block.timestamp > endTime && liquidityAdded, "Presale not over yet!!");
         require(!refundsEnabled, "Can't claim if refunds are enabled");
 
-        (uint pendingJanisAmount, uint pendingOwnershipTokenAmount) = pendingTokens();
+        (uint pendingJanisAmount, uint pendingOwnershipTokenAmount) = pendingTokens(msg.sender);
 
         require(pendingJanisAmount > 0 || pendingOwnershipTokenAmount > 0, "Nothing to claim");
 
@@ -296,18 +296,40 @@ contract LaunchSale is
         emit StartTimeChanged(startTime, endTime);
     }
 
-    function setAdmins(address _newAdmin, bool status) public onlyOwner {
+    function setAdmins(address _newAdmin, bool status) external onlyOwner {
         admins[_newAdmin] = status;
 
         emit AdminSet(_newAdmin, status);
     }
 
-  function sendETH(address to, uint amount) internal {
-    if (amount > 0) {
-      (bool transferSuccess, ) = payable(to).call{
-          value: amount
-      }("");
-      require(transferSuccess, "ETH transfer failed");
+    function sendETH(address to, uint amount) internal {
+        if (amount > 0) {
+        (bool transferSuccess, ) = payable(to).call{
+            value: amount
+        }("");
+        require(transferSuccess, "ETH transfer failed");
+        }
     }
-  }
+
+    function recoverTokens() external onlyOwner {
+        require(!liquidityAdded && !refundsEnabled, "Can't recover tokens once emissions have started!");
+
+        sendETH(orgAddress, address(this).balance);
+
+        uint janisBalance = JanisToken.balanceOf(address(this));
+        if (janisBalance > 0) {
+            JanisToken.safeTransfer(
+                orgAddress,
+                janisBalance
+            );
+        }
+
+        uint janisOwnershipBalance = OwnershipToken.balanceOf(address(this));
+        if (janisOwnershipBalance > 0) {
+            OwnershipToken.safeTransfer(
+                orgAddress,
+                janisOwnershipBalance
+            );
+        }
+    }
 }
