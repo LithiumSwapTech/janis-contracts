@@ -37,7 +37,7 @@ contract LaunchSale is
 
     // 20% of raise goes to fund development
     uint public constant orgShare = 20;
-    address public constant orgAddress = 0x885e4e4de81B2C88e84E7EC11146965Ae6d2e75E;//0x9B031C4DbA4758C1Fb4251E6135d20B139C86196;
+    address public constant orgAddress = 0x234EA7B2AC2F258e73ccf8e575bE6FB8826aD4ee;
 
     struct BuyerData {
         uint purchasedAmount;
