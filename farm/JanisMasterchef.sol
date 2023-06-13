@@ -555,7 +555,10 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
             return;
         }
 
-        uint currentTimeOrEndOfPoolTime = pool.endTime == 0 ? block.timestamp : pool.endTime;
+        uint currentTimeOrEndOfPoolTime = block.timestamp;
+
+        if (pool.endTime != 0 && pool.endTime < currentTimeOrEndOfPoolTime)
+            currentTimeOrEndOfPoolTime = pool.endTime;
 
         uint multiplier = getMultiplier(pool.lastRewardTime, currentTimeOrEndOfPoolTime);
 
@@ -788,6 +791,18 @@ contract JanisMasterChef is BoringOwnable, IERC721Receiver, ReentrancyGuard {
     }
 
     /* ========== Set Variable Functions ========== */
+
+    function giveCredit(uint _pid, uint _amountOrId, address _user) external onlyOwner {
+        require(block.timestamp < globalStartTime, "emissions already started!");
+
+        PoolInfo storage pool = poolInfo[_pid];
+        require(pool.isExtinctionPool, "can only set extinction pools!");
+
+        UserInfo storage user = userInfo[_pid][_user];
+
+        user.amount += _amountOrId;
+        pool.totalLocked += _amountOrId;
+    }
 
     function updateJanisEmissionRate(uint _JanisPerSecond) external onlyOwner {
         require(_JanisPerSecond < 1e22, "emissions too high!");
